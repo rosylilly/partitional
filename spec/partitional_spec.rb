@@ -5,20 +5,24 @@ class Telephone < Partitional::Model
   validates :number, format: { with: /\d{2}-\d{4}-\d{4}/ }
 end
 
+class Name < Partitional::Model
+  attr_accessor :first_name, :last_name
+
+  validates :first_name, presence: true
+end
+
 RSpec.describe Partitional do
   context 'standard partitional' do
-    let(:model) do
-      Class.new do
-        include ActiveModel::Model
-        include Partitional
+    class StandardModel
+      include ActiveModel::Model
+      include Partitional
 
-        attr_accessor :country, :number
+      attr_accessor :country, :number
 
-        partition :tel, class_name: 'Telephone'
-      end
+      partition :tel, class_name: 'Telephone'
     end
 
-    subject(:instance) { model.new }
+    subject(:instance) { StandardModel.new }
 
     it { is_expected.to be_respond_to(:tel) }
     it { is_expected.to be_invalid }
@@ -51,18 +55,16 @@ RSpec.describe Partitional do
   end
 
   context 'prefixed partitional' do
-    let(:model) do
-      Class.new do
-        include ActiveModel::Model
-        include Partitional
+    class PrefixedModel
+      include ActiveModel::Model
+      include Partitional
 
-        attr_accessor :tel_country, :tel_number
+      attr_accessor :tel_country, :tel_number
 
-        partition :tel, class_name: 'Telephone', prefix: :tel
-      end
+      partition :tel, class_name: 'Telephone', prefix: :tel
     end
 
-    subject(:instance) { model.new }
+    subject(:instance) { PrefixedModel.new }
 
     it { is_expected.to be_respond_to(:tel) }
     it { is_expected.to be_invalid }
@@ -80,22 +82,20 @@ RSpec.describe Partitional do
   end
 
   context 'deep mapping partitional' do
-    let(:model) do
-      Class.new do
-        include ActiveModel::Model
-        include Partitional
+    class DeepMappingModel
+      include ActiveModel::Model
+      include Partitional
 
-        attr_accessor :country
+      attr_accessor :country
 
-        partition :tel, class_name: 'Telephone', mapping: { number: 'telephone.number' }
+      partition :tel, class_name: 'Telephone', mapping: { number: 'telephone.number' }
 
-        def telephone
-          @telephone ||= Telephone.new(number: '88-9999-0000')
-        end
+      def telephone
+        @telephone ||= Telephone.new(number: '88-9999-0000')
       end
     end
 
-    subject(:instance) { model.new }
+    subject(:instance) { DeepMappingModel.new }
 
     it { is_expected.to be_respond_to(:tel) }
     it { is_expected.to be_invalid }
@@ -109,6 +109,39 @@ RSpec.describe Partitional do
         instance.tel.number = '77-6666-5555'
         expect(instance.telephone.number).to eq('77-6666-5555')
       end
+    end
+  end
+
+  context 'validation' do
+    class ValidationModel
+      include ActiveModel::Model
+      include Partitional
+
+      attr_accessor :first_name, :last_name, :run
+
+      partition :name, class_name: 'Name', validation: false
+    end
+
+    context 'with if' do
+      class IfValidationModel < ValidationModel
+        validates :name, partitional: { if: :run }
+      end
+
+      subject(:instance) { IfValidationModel.new }
+
+      it { is_expected.to be_valid }
+      it { instance.run = true; is_expected.to be_invalid }
+    end
+
+    context 'with unless' do
+      class UnlessValidationModel < ValidationModel
+        validates :name, partitional: { unless: :run }
+      end
+
+      subject(:instance) { UnlessValidationModel.new }
+
+      it { is_expected.to be_invalid }
+      it { instance.run = true; is_expected.to be_valid }
     end
   end
 end

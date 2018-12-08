@@ -4,7 +4,8 @@ module Partitional
   class Model
     include ActiveModel::Model
 
-    attr_accessor :record, :mapping
+    attr_accessor :record
+    attr_writer :mapping
 
     def self.attributes
       @attributes ||= []
@@ -42,13 +43,13 @@ module Partitional
 
     def [](attr)
       attr = attr.to_s.to_sym
-      reader = (mapping || {}).fetch(attr) { attr }
+      reader = mapping.fetch(attr) { attr }
       record ? record_send(reader) : instance_variable_get(:"@#{attr}")
     end
 
     def []=(attr, val)
       attr = attr.to_s.to_sym
-      writer = (mapping || {}).fetch(attr) { attr }
+      writer = mapping.fetch(attr) { attr }
       record ? record_send(:"#{writer}=", val) : instance_variable_set(:"@#{attr}", val)
     end
 
@@ -58,6 +59,10 @@ module Partitional
       end
 
       Hash[attrs]
+    end
+
+    def mapping
+      @mapping || {}
     end
 
     protected

@@ -1,5 +1,6 @@
 require 'active_support/concern'
 require 'partitional/version'
+require 'partitional/validator'
 
 module Partitional
   extend ActiveSupport::Concern
@@ -49,14 +50,7 @@ module Partitional
     end
 
     def define_partial_validator(name, mapping)
-      validate do
-        partial = send(name)
-        partial.validate
-
-        partial.errors.each do |attr, message|
-          errors.add(mapping[attr], message)
-        end
-      end
+      validates name, partitional: true
     end
   end
 end
