@@ -25,8 +25,8 @@ class PartitionalValidator < ActiveModel::EachValidator
     value.validate
     mapping = value.mapping
 
-    value.errors.each do |attr, message|
-      record.errors.add(mapping[attr], message)
+    value.errors.each do |error|
+      record.errors.add(mapping[error.attribute], error.message)
     end
   end
 

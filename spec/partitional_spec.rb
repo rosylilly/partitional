@@ -135,13 +135,23 @@ RSpec.describe Partitional do
 
     context 'with unless' do
       class UnlessValidationModel < ValidationModel
-        validates :name, partitional: { unless: :run }
+        validates :name, partitional: { unless: -> (instance) { instance.run } }
       end
 
       subject(:instance) { UnlessValidationModel.new }
 
       it { is_expected.to be_invalid }
       it { instance.run = true; is_expected.to be_valid }
+    end
+
+    context 'with invalid keys' do
+      it 'should raise error on define validation' do
+        expect do
+          class InvalidKeyValidationModel < ValidationModel
+            validates :name, partitional: { undefined: true }
+          end
+        end.to raise_error(ArgumentError)
+      end
     end
   end
 end
